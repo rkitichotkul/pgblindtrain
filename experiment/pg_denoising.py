@@ -8,12 +8,15 @@ import util.general as gutil
 
 # Parameters
 datadir = 'data/test'
-savedir = 'result/prelim_dncnn'
+savedir = 'result/prelim_dncnn_2'
 model = 'dncnn'
 oneim = True
-std_namelist = np.array([0, 10, 20, 30])
+std_namelist = np.array([25])
 std_list = std_namelist / 255
-num_photons = np.array([1000, 100, 10, 1])
+# num_photons = np.array([1000, 100, 10, 1])
+num_photons = np.array([10000, 7500, 5000, 2500, 1000, 750, 500, 250, 100, 75, 50, 25, 10, 5, 1])
+# num_photons = np.array([np.inf])     # Notation: inf means no Poisson noise
+save_image = True
 alpha_list = 1 / num_photons
 
 if __name__ == '__main__':
@@ -28,7 +31,7 @@ if __name__ == '__main__':
         model = den.setup_DnCNN(modeldir, num_layers=17)
         denoiser = den.DnCNN_denoiser(model)
     else:
-        raise RuntimeError('Invalid model type')
+        raise RuntimeError('Invalid denoiser type')
 
     print('Preparing image paths...')
     loadlist, namelist, num_images = gutil.prepare_image_path(datadir, oneim=oneim)
@@ -46,16 +49,21 @@ if __name__ == '__main__':
             for j, std in enumerate(std_list):
                 for k, alpha in enumerate(alpha_list):
 
-                    noisy_image = alpha * torch.poisson(image / alpha)
+                    if alpha != 0:
+                        noisy_image = alpha * torch.poisson(image / alpha)
+                    else:
+                        noisy_image = image.clone()
                     if std != 0:
                         noisy_image += torch.normal(mean=torch.zeros_like(image), std=std)
 
                     denoised_image = denoiser(noisy_image, std=std)
 
-                    gutil.save_image(noisy_image, os.path.join(savedir, '{}-noisy-std{}-photon{}.png'.format(name, std_namelist[j], num_photons[k])))
-                    gutil.save_image(denoised_image, os.path.join(savedir, '{}-denoised-std{}-photon{}.png'.format(name, std_namelist[j], num_photons[k])))
-                    psnr_log[i, j, k] = gutil.calc_psnr(noisy_image, image)
-                    print('Image {}, std {}, alpha {}, PSNR = {}'.format(name, std, alpha, psnr_log[i, j, k]))
+                    psnr_log[i, j, k] = gutil.calc_psnr(denoised_image, image)
+                    print('Image {}, std {}, alpha {}, PSNR = {}'.format(name, std_namelist[j], alpha, psnr_log[i, j, k]))
+                    if save_image:
+                        gutil.save_image(noisy_image, os.path.join(savedir, '{}-noisy-std{}-photon{}.png'.format(name, std_namelist[j], num_photons[k])))
+                        gutil.save_image(denoised_image, os.path.join(savedir, '{}-denoised-std{}-photon{}.png'.format(name, std_namelist[j], num_photons[k])))
+
 
 print('Saving PSNR log...')
 torch.save(psnr_log, os.path.join(savedir, 'psnr.pt'))
