@@ -11,6 +11,7 @@ The DnCNN model based on https://github.com/SaoYan/DnCNN-PyTorch.
 
 Remez (Remez et al. 2018, Class-Aware Fully-Convolutional Gaussian and Poisson Denoising)
 -----
+The architecture has two branches. See Fig. 2 in the original paper.
 
 """
 
@@ -38,11 +39,11 @@ class DnCNN(nn.Module):
         layers.append(nn.Conv2d(in_channels=features, out_channels=channels,
                                 kernel_size=kernel_size, padding=padding, bias=False))
         self.layers = nn.Sequential(*layers)
-        # self._initialize_weights()
+        self._initialize_weights()
 
     def forward(self, x):
-        out = self.layers(x)
-        return out
+        noise = self.layers(x)
+        return x - noise
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -51,17 +52,6 @@ class DnCNN(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
-
-
-''' Weight init example
-def init_weights(m):
-    if type(m) == nn.Linear:
-        torch.nn.init.xavier_uniform(m.weight)
-        m.bias.data.fill_(0.01)
-
-net = nn.Sequential(nn.Linear(2, 2), nn.Linear(2, 2))
-net.apply(init_weights)
-'''
 
 class Remez(nn.Module):
     def __init__(self, num_layers=20):
