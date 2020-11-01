@@ -1,10 +1,11 @@
 """
 Collection of denoiser wrappers suitable for passing to MSE/SURE heatmap generation functions.
+
+TODO: I changed how DnCNN works. It now outputs the denoised image instead of the predicted noise.
+Changes must be made here accordingly.
 """
 
-import os, sys
-sys.path.append(os.path.dirname(sys.path[0]))
-
+import os
 import numpy as np
 import torch
 from torch import nn

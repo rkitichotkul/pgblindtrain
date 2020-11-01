@@ -79,7 +79,7 @@ class DenoiseDataset(Dataset):
             noisy_image = alpha * torch.poisson(image / alpha)
         else:
             noisy_image = image.clone()
-        if std != 0:
-            noisy_image += torch.normal(mean=torch.zeros_like(image), std=std)
+        if sigma != 0:
+            noisy_image += torch.normal(mean=torch.zeros_like(image), std=sigma)
 
         return image, noisy_image

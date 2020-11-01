@@ -19,10 +19,11 @@ from torch import nn
 from torch.nn import functional as F
 
 class DnCNN(nn.Module):
-    def __init__(self, channels, num_layers=17):
+    def __init__(self, num_layers=17):
         super(DnCNN, self).__init__()
 
         # Fixed parameters
+        channels = 1
         kernel_size = 3
         padding = 1
         features = 64
@@ -65,20 +66,22 @@ class Remez(nn.Module):
         features_n = 1      # Number of features for each "effective noise" convolution
 
         self.num_layers = num_layers
-        self.main_branch = [None] * num_layers
-        self.noise_branch = [None] * (num_layers + 1)
+        main_branch = [None] * num_layers
+        noise_branch = [None] * (num_layers + 1)
 
-        self.main_branch[0] = nn.Conv2d(in_channels=channels, out_channels=features,
+        main_branch[0] = nn.Conv2d(in_channels=channels, out_channels=features,
                                 kernel_size=kernel_size, padding=padding, bias=False)
-        self.noise_branch[0] = nn.Conv2d(in_channels=channels, out_channels=features_n,
+        noise_branch[0] = nn.Conv2d(in_channels=channels, out_channels=features_n,
                                 kernel_size=kernel_size, padding=padding, bias=False)
         for i in range(1, num_layers):
-            self.main_branch[i] = nn.Conv2d(in_channels=features, out_channels=features,
+            main_branch[i] = nn.Conv2d(in_channels=features, out_channels=features,
                                     kernel_size=kernel_size, padding=padding, bias=False)
-            self.noise_branch[i] = nn.Conv2d(in_channels=features, out_channels=features_n,
+            noise_branch[i] = nn.Conv2d(in_channels=features, out_channels=features_n,
                                     kernel_size=kernel_size, padding=padding, bias=False)
-        self.noise_branch[num_layers] = nn.Conv2d(in_channels=features, out_channels=features_n,
+        noise_branch[num_layers] = nn.Conv2d(in_channels=features, out_channels=features_n,
                                 kernel_size=kernel_size, padding=padding, bias=False)
+        self.main_branch = nn.ModuleList(main_branch)
+        self.noise_branch = nn.ModuleList(noise_branch)
         self._initialize_weights()
 
     def forward(self, x):
@@ -94,4 +97,4 @@ class Remez(nn.Module):
         for i in range(self.num_layers):
             self.main_branch[i]._apply(nn.init.kaiming_normal_)
             self.noise_branch[i]._apply(nn.init.kaiming_normal_)
-        self.noise_branch[self.num_layers]._apply(nn.init.zeros_)
+        self.noise_branch[self.num_layers]._apply(nn.init.kaiming_normal_)

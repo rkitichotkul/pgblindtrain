@@ -17,6 +17,7 @@ with the following organization,
 import os, sys
 sys.path.append(os.path.dirname(sys.path[0]))
 
+import numpy as np
 import h5py
 from util.general import normalize, read_image, generate_loadlist, remove_if_exists
 
