@@ -81,7 +81,7 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     random_image_2 = binary_dist(noisy_image.shape, p, [math.sqrt(p/q), -math.sqrt(q/p)])
     denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2, std=sigma)
     denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2, std=sigma)
-    second_derivative = torch.dot(random_image_2.view(-1) * torch.ones(n), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
+    second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
     second_derivative *= -2. * alpha * sigma**2 / (n * kappa * eps_2**2)
 
     # bias term
