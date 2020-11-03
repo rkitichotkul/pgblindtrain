@@ -3,12 +3,13 @@
 import torch
 from torch.nn import MSELoss
 from util.train import batch_psnr, dtype
+import time
 
 def train(model,
           loader_train,
           optimizer,
+          scheduler=None,
           epochs=1,
-          milestone=None,
           loader_val=None,
           loader_test=None,
           device=torch.device('cpu'),
@@ -29,10 +30,9 @@ def train(model,
         model: the DnCNN instance to be trained.
         loader_train (torch.utils.data.DataLoader): train dataset loader.
         optimizer (torch.optim.Optimizer): the optimizer.
+        scheduler: (torch.optim.lr_scheduler) a learning rate scheduler
+            Assumed to be ReduceLROnPlateau type for now.
         epoches (int): the number of epochs.
-        milestone (int): number of epochs after which learning rate is scaled
-            down by 10. If None, do not change learning rate. This milestone
-            is relative to beginning of current training session.
         loader_val (torch.utils.data.DataLoader): validation dataset loader.
             If None, do not perform validation.
         device (torch.device): the device to perform computations on.
@@ -46,10 +46,10 @@ def train(model,
         start_global_step (int): global step to begin (for resuming from checkpoint)
         loss_func: the loss function.
     """
+    start_time = time.time()
     _check_log_image(log_image, len(loader_val))
     global_step = start_global_step
     for e in range(start_epoch, start_epoch + epochs):
-        _update_lr(optimizer, e - start_epoch, milestone)
         model.train()
         for i, (image, noisy_image) in enumerate(loader_train):
             image = image.to(device=device, dtype=dtype)
@@ -64,7 +64,9 @@ def train(model,
             global_step += 1
         if loader_val is not None:
             print('Validation after epoch {:d}'.format(e))
-            eval(model, loader_val, is_train=True, device=device, writer=writer, epoch=e, log_image=log_image)
+            psnr = eval(model, loader_val, is_train=True, device=device, writer=writer, epoch=e, log_image=log_image)
+            print('Time from begin training: {}'.format(time.time() - start_time))
+            scheduler.step(psnr)
         _log_lr(writer, optimizer, e)
         _save_checkpoint(savedir, e, global_step, model, optimizer)
         print()
@@ -97,6 +99,9 @@ def eval(model,
         epoch (int): training epoch when using this function for validation.
         log_image (list): Log validation or test images of indices in this list.
             If None, do not log images.
+
+    Returns:
+        psnr (float): validation PSNR
     """
     model.eval()
     image_log_dir = _select_imlogdir(is_train)
@@ -111,22 +116,13 @@ def eval(model,
                 writer.add_image('{}{}'.format(image_log_dir, i), torch.squeeze(denoised_image, dim=0), epoch)
         psnr /= len(loader.dataset)
     _log_eval(is_train, psnr, epoch, writer)
+    return psnr
 
 def _check_log_image(log_image, loader_len):
     """Verify that indices in log_image list do not exceed size of the loader."""
     for i in log_image:
         if i > loader_len - 1:
             raise RuntimeError('solve.train._check_log_image: index in log_image exceeds size of val loader')
-
-def _update_lr(optimizer, epoch, milestone, scale=10.):
-    """Scale down learning rate when number of epochs reach milestone"""
-    if milestone is None:
-        return
-    elif milestone == epoch:
-        print('Milestone is reached!')
-        for param_group in optimizer.param_groups:
-            param_group['lr'] /= scale
-            print('Change learning rate to {}'.format(param_group['lr']))
 
 def _save_checkpoint(savedir, epoch, global_step, model, optimizer):
     """Save current checkpoint when training if the path is provided"""

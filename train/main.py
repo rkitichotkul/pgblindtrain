@@ -147,6 +147,7 @@ if __name__ == '__main__':
         model = model.to(device=device)
 
         optimizer = optim.Adam(model.parameters(), lr=lr)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)
 
         start_global_step, start_epoch = tutil.load_checkpoint_train(cpdir, model, optimizer)
 
@@ -154,7 +155,7 @@ if __name__ == '__main__':
         tutil.log_hyperparams(batch_size, sigma, alpha, writer)
 
         print('Begin training...')
-        solve.train(model, loader_train, optimizer, epochs=epochs, milestone=milestone,
+        solve.train(model, loader_train, optimizer, epochs=epochs, scheduler=scheduler,
                     loader_val=loader_val, loader_test=loader_test, device=device, writer=writer,
                     log_every=log_every, log_image=log_image, savedir=modeldir,
                     start_epoch=start_epoch, start_global_step=start_global_step)

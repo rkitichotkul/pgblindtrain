@@ -6,7 +6,6 @@ python train/main.py train \
     --numlayers 17 \
     --sigma 25 \
     --alpha 0 \
-    --learnrate 1e-3 \
+    --learnrate 1e-2 \
     --epochs 50 \
-    --milestone 30 \
     --logevery 50
