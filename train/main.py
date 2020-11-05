@@ -114,8 +114,8 @@ if __name__ == '__main__':
         print('batch size {}, learning rate {}'.format(batch_size, lr))
         print()
 
-        mkdir_if_not_exists(modeldir[:modeldir.rfind('/')])
         mkdir_if_not_exists(logdir)
+        mkdir_if_not_exists(modeldir[:modeldir.rfind('/')])
 
         print('Setting up training...')
         transforms_train = transforms.Compose([
