@@ -67,11 +67,11 @@ parser.add_argument('--cpdir', type=str, default=None,
 parser.add_argument('--batchsize', type=int, default=100,
                     help='Number of patches in a batch.')
 parser.add_argument('--learnrate', type=float, default=1e-3,
-                    help='Learning rate. If more than one, use second learning rate when validation accuracy stops improving.')
+                    help='Initial learning rate.')
 parser.add_argument('--epochs', type=int, default=1, help='Total epochs for training.')
 parser.add_argument('--milestone', type=int, default=30, help='Number of epochs after which learning rate is scaled down by 10.')
 parser.add_argument('--logevery', type=int, default=10,
-                    help='Log loss and PSNR every this number of iterations in an epoch.')
+                    help='Log loss and PSNR every this number of iterations in an epoch (1 iteration contains #batchsize images).')
 
 args = parser.parse_args()
 mode = args.mode

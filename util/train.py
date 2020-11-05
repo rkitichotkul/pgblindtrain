@@ -127,5 +127,5 @@ class FixedAngleRotation:
         self.angles = angles
 
     def __call__(self, x):
-        angle = np.random.choice(self.angles)
+        angle = float(np.random.choice(self.angles))
         return rotate(x, angle)

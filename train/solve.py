@@ -65,9 +65,8 @@ def train(model,
         if loader_val is not None:
             print('Validation after epoch {:d}'.format(e))
             psnr = eval(model, loader_val, is_train=True, device=device, writer=writer, epoch=e, log_image=log_image)
-            print('Time from begin training: {}'.format(time.time() - start_time))
             scheduler.step(psnr)
-        _log_lr(writer, optimizer, e)
+        _log_epoch(writer, optimizer, e, start_time)
         _save_checkpoint(savedir, e, global_step, model, optimizer)
         print()
     print('Training: Done!')
@@ -170,8 +169,11 @@ def _log_eval(is_train, psnr, epoch, writer):
     if writer is not None:
         writer.add_scalar(log_message, psnr, epoch)
 
-def _log_lr(writer, optimizer, epoch):
-    """Log optimizer learning rate"""
+def _log_epoch(writer, optimizer, epoch, start_time):
+    """Log optimizer learning rate and time"""
     lr_log = 'lr/'
     for i, param_group in enumerate(optimizer.param_groups):
         writer.add_scalar(lr_log + '{:d}'.format(i), param_group['lr'], epoch)
+    time_spent = time.time() - start_time
+    print('Time from begin training: {}'.format(time_spent))
+    writer.add_scalar('time', time_spent, epoch)
