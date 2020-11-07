@@ -89,3 +89,89 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     if add_bias:
         bias = (torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat))/n - sigma**2
     return fidelity + first_derivative + bias
+
+# wrapper function
+# usage: example for mse
+# in train/main.py: edit from loss_func argument to objective_params
+# solve.train(..., objective_params = {"loss": "mse", "alpha": alpha, "sigma": sigma})
+
+# usage: example for pure
+# in train/main.py: edit from loss_func argument to objective_params
+# solve.train(..., objective_params = {"loss": "pure", "alpha": alpha, "sigma": sigma})
+# potentially, add argument --loss to parser to take type of loss as argument
+
+# in train/solve.py: (both cases)
+# loss = loss_func(objective_params, image, noisy_image, denoised_image, denoiser)
+
+def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
+    obj_name = ""
+    if type(objective_params) == str:
+        if obj_name != "mse":
+            print("Warning: set objective to mse loss")
+        obj_name = "mse"
+    elif ("loss" not in objective_params) or (objective_params["loss"] not in ["mse", "pure", "spure"]):
+        obj_name = "mse"
+        print("Warning: set objective to mse loss")
+    else:
+        obj_name = objective_params["loss"]
+    if obj_name == "mse":
+        return torch.nn.MSE_loss(denoised_image, image, reduction='sum') / (2 * noisy_image.shape[0])
+    else:
+        assert "alpha" in objective_params, "Missing parameter: poisson strenth (alpha)"
+        assert "sigma" in objective_params, "Missing parameter: gaussian std (sigma)"
+
+        add_bias = False
+        if "add_bias" in objective_params:
+            add_bias = objective_params["add_bias"]
+
+        if obj_name == "pure":
+            return pure(noisy_image, denoised_image, denoiser, objective_params["alpha"], objective_params["sigma"], add_bias)
+        if obj_name == "spure":
+            return spure(noisy_image, denoised_image, denoiser, objective_params["alpha"], objective_params["sigma"], add_bias)
+
+# wrapper class for objective function
+
+# usage: example for mse
+# initialization obj = Objective("mse")
+# forward pass: loss = obj(denoised_image, true_image)
+# backward pass: loss.backward()
+
+# usage: example for pure
+# initialization obj = Objective("spure", {"alpha":0.01, "std":0.05})
+# forward pass: loss = obj(denoised_image, noisy_image, denoiser)
+# backward pass: loss.backward()
+
+class Objective:
+    def __init__(self, objective = "mse", params = None):
+        if objective not in ["mse", "pure", "spure"]:
+            print("Invalid choice of objective function, set objective to mse loss")
+            objective = "mse"
+        if objective == "mse":
+            self.obj_name = "mse"
+            print("Set objective function: MSE loss")
+        else:
+            assert params != None, "Missing parameters dictionary"
+            assert "alpha" in params, "Missing parameter: poisson strenth (alpha)"
+            assert "std" in params, "Missing parameter: gaussian std (std)"
+            self.add_bias = False
+            if "add_bias" in params:
+                self.add_bias = params["add_bias"]
+            if objective == "pure":
+                self.obj_name = "pure"
+                print("Set objective function: PURE")
+            if objective == "spure":
+                self.obj_name = "spure"
+                print("Set objective function: SPURE")
+
+    def calc_loss(self, output, target, denoiser = None):
+        if self.obj_name == "mse":
+            return torch.nn.MSE_loss(output, target)
+        elif self.obj_name == "pure":
+            assert "denoiser" is not None, "Missing denoiser"
+            return pure(target, output, denoiser, self.alpha, self.std, self.add_bias)
+        elif self.obj_name == "spure":
+            assert "denoiser" is not None, "Missing denoiser"
+            return spure(target, output, denoiser, self.alpha, self.std, self.add_bias)
+
+    def __call__(self, output, target, denoiser = None):
+        return self.calc_loss(output, target, denoiser)
