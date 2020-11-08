@@ -1,0 +1,12 @@
+python train/main.py train \
+    --datadir data \
+    --modeltype remez \
+    --modeldir result/spure_remez0/spure_remez0.pth \
+    --logdir result/spure_remez0 \
+    --numlayers 20 \
+    --sigma 25 \
+    --alpha 0.01 \
+    --loss mse \
+    --learnrate 1e-3 \
+    --epochs 20 \
+    --logevery 50
