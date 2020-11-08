@@ -1,8 +1,8 @@
 python train/main.py train \
     --datadir data \
     --modeltype remez \
-    --modeldir result/spure_remez0/spure_remez0.pth \
-    --logdir result/spure_remez0 \
+    --modeldir result/remez_mse_0/remez_mse_0.pth \
+    --logdir result/remez_mse_0 \
     --numlayers 20 \
     --sigma 25 \
     --alpha 0.01 \
