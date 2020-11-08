@@ -56,7 +56,7 @@ def train(model,
             image = image.to(device=device, dtype=dtype)
             noisy_image = noisy_image.to(device=device, dtype=dtype)
             denoised_image = model(noisy_image)
-            loss = loss_func(objective_params, image, noisy_image, denoised_image, model)
+            loss = loss_func(objective_params, image, noisy_image, denoised_image, model, device)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

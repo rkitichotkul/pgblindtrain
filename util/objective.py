@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(sys.path[0]))
 import torch
 import math
 from util import general as gutil
+from util.train import dtype
 
 # binary distribution
 # p(value[0]) = 1 - prob and p(value[1]) = prob
@@ -23,7 +24,7 @@ def binary_dist(sample_shape, prob, value=[0, 1]):
 # sigma is standard deviation for additive zero-mean Gaussian noise
 # H is point spread function convolution matrix for blurry image
 # bias is the constant term, independent of denoiser (can omit when minimizing loss, set add_bias = False)
-def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
+def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False, device=torch.device('cpu')):
     # reshape to flat vector
     noisy_image_flat = noisy_image.view(-1)
     denoised_image_flat = denoised_image.view(-1)
@@ -36,8 +37,10 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     # first derivative term
     eps_1 = 1e-4
     random_image_1 = binary_dist(noisy_image.shape, 0.5, [-1, 1])
+    random_image_1 = random_image_1.to(device=device, dtype=dtype)
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
+    denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (eps_1)
 
@@ -55,7 +58,7 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
 # sigma is standard deviation for additive zero-mean Gaussian noise
 # H is point spread function convolution matrix for blurry image
 # bias is the constant term, independent of denoiser (can omit when minimizing loss, set add_bias = False)
-def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
+def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False, device=torch.device('cpu')):
     # reshape to flat vector
     noisy_image_flat = noisy_image.view(-1)
     denoised_image_flat = denoised_image.view(-1)
@@ -68,8 +71,10 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     # first derivative term
     eps_1 = 1e-4
     random_image_1 = binary_dist(noisy_image.shape, 0.5, [-1, 1])
+    random_image_1 = random_image_1.to(device=device, dtype=dtype)
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
+    denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (eps_1)
 
@@ -79,8 +84,11 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     p = 0.5 + (0.5 * kappa / math.sqrt(kappa**2 + 4))
     q = 1 - p
     random_image_2 = binary_dist(noisy_image.shape, p, [math.sqrt(p/q), -math.sqrt(q/p)])
+    random_image_2 = random_image_2.to(device=device, dtype=dtype)
     denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2)
+    denoised_perturb_2_pos = denoised_perturb_2_pos.to(device=device, dtype=dtype)
     denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2)
+    denoised_perturb_2_neg = denoised_perturb_2_neg.to(device=device, dtype=dtype)
     second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
     second_derivative *= -2. * torch.squeeze(alpha * sigma**2) / (kappa * eps_2**2)
 
@@ -103,7 +111,7 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
 # in train/solve.py: (both cases)
 # loss = loss_func(objective_params, image, noisy_image, denoised_image, denoiser)
 
-def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
+def loss_func(objective_params, image, noisy_image, denoised_image, denoiser, device=torch.device('cpu')):
     """Wrapper function for loss functions (mse, pure, spure)
 
     Args:
@@ -138,6 +146,6 @@ def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
             add_bias = objective_params['add_bias']
 
         if obj_name == 'pure':
-            return pure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias)
+            return pure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias, device)
         if obj_name == 'spure':
-            return spure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias)
+            return spure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias, device)
