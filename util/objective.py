@@ -116,6 +116,7 @@ def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
     Returns:
         loss
     """
+
     obj_name = ''
     if type(objective_params) == str:
         if obj_name != 'mse':
@@ -127,7 +128,7 @@ def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
     else:
         obj_name = objective_params['loss']
     if obj_name == 'mse':
-        return torch.nn.MSE_loss(denoised_image, image, reduction='sum') / (2 * noisy_image.shape[0])
+        return torch.nn.functional.mse_loss(denoised_image, image, reduction='sum') / (2 * image.shape[0])
     else:
         assert 'alpha' in objective_params, 'Missing parameter: poisson strenth (alpha)'
         assert 'sigma' in objective_params, 'Missing parameter: gaussian std (sigma)'

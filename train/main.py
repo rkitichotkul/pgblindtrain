@@ -60,7 +60,7 @@ parser.add_argument('--logimage', type=int, default=[-1], nargs='*',
                     help='Whether to log images when training/testing.')
 parser.add_argument('--sigma', type=int, default=[25], nargs='*',
                     help='STD of Gaussian noise. If 2 values, uniform random STDs between the two values are used.')
-parser.add_argument('--alpha', type=int, default=[1000], nargs='*',
+parser.add_argument('--alpha', type=float, default=[0.001], nargs='*',
                     help='Strength of Poisson noise. If 2 values, uniform random STDs between the two values are used.')
 parser.add_argument('--cpdir', type=str, default=None,
                     help='Path to checkpoint to resume model training. If None, train a new model.')

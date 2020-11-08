@@ -1,7 +1,7 @@
 """Train and test functions for DnCNN."""
 
 import torch
-from torch.nn import MSELoss
+from torch.nn.functional import mse_loss
 from util.train import batch_psnr, dtype
 import time
 from util.objective import loss_func
@@ -145,9 +145,13 @@ def _log_train(image,
                writer):
     """Log the training loss and PSNR."""
     psnr = batch_psnr(denoised_image, image, max=1.)
+    mse = mse_loss(denoised_image, image, reduction='sum') / (2 * image.shape[0])
+    diff = (mse - loss).abs()
     print('Epoch {:d} Iteration {:d}, Loss = {:.4f}, PSNR = {:.4f}'.format(epoch, iteration, loss.item(), psnr))
     if writer is not None:
         writer.add_scalar('loss/train', loss.item(), global_step)
+        writer.add_scalar('mse/train', mse.item(), global_step)
+        writer.add_scalar('mse_diff_loss/train', diff.item(), global_step)
         writer.add_scalar('PSNR/train', psnr, global_step)
 
 def _select_imlogdir(is_train):
