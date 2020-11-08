@@ -72,6 +72,8 @@ parser.add_argument('--epochs', type=int, default=1, help='Total epochs for trai
 parser.add_argument('--milestone', type=int, default=30, help='Number of epochs after which learning rate is scaled down by 10.')
 parser.add_argument('--logevery', type=int, default=10,
                     help='Log loss and PSNR every this number of iterations in an epoch (1 iteration contains #batchsize images).')
+parser.add_argument('--loss', type=str, default='mse', choices=['mse', 'pure', 'spure'],
+                    help='Type of loss/objective function [mse, pure, spure].')
 
 args = parser.parse_args()
 mode = args.mode
@@ -154,11 +156,16 @@ if __name__ == '__main__':
         writer = SummaryWriter(logdir)
         tutil.log_hyperparams(batch_size, sigma, alpha, writer)
 
+        loss = args.loss
+        objective_params = {'loss':loss, 'alpha':alpha, 'sigma':sigma}
+        print('Training with loss function: ', loss)
+
         print('Begin training...')
         solve.train(model, loader_train, optimizer, epochs=epochs, scheduler=scheduler,
                     loader_val=loader_val, loader_test=loader_test, device=device, writer=writer,
                     log_every=log_every, log_image=log_image, savedir=modeldir,
-                    start_epoch=start_epoch, start_global_step=start_global_step)
+                    start_epoch=start_epoch, start_global_step=start_global_step,
+                    objective_params=objective_params)
 
         writer.close()
         print('Training: Done!')

@@ -4,6 +4,7 @@ import torch
 from torch.nn import MSELoss
 from util.train import batch_psnr, dtype
 import time
+from util.objective import loss_func
 
 def train(model,
           loader_train,
@@ -19,7 +20,7 @@ def train(model,
           log_image=[-1],
           start_epoch=0,
           start_global_step=0,
-          loss_func=MSELoss(reduction='sum')):
+          objective_params='mse'):
     """Train the DnCNN model.
 
     Note:
@@ -44,7 +45,7 @@ def train(model,
         log_image (list): Log validation images of indices in this list.
         start_epoch (int): epoch to begin (for resuming from checkpoint)
         start_global_step (int): global step to begin (for resuming from checkpoint)
-        loss_func: the loss function.
+        objective_params: parameters for calculating loss/objective function
     """
     start_time = time.time()
     _check_log_image(log_image, len(loader_val))
@@ -55,7 +56,7 @@ def train(model,
             image = image.to(device=device, dtype=dtype)
             noisy_image = noisy_image.to(device=device, dtype=dtype)
             denoised_image = model(noisy_image)
-            loss = loss_func(denoised_image, image) / (2 * noisy_image.shape[0])
+            loss = loss_func(objective_params, image, noisy_image, denoised_image, model)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
