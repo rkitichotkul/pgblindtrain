@@ -82,13 +82,13 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2)
     denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2)
     second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
-    second_derivative *= -2. * alpha * sigma**2 / (n * kappa * eps_2**2)
+    second_derivative *= -2. * torch.squeeze(alpha * sigma**2) / (n * kappa * eps_2**2)
 
     # bias term
-    bias = 0
-    if add_bias:
-        bias = (torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat))/n - sigma**2
-    return fidelity + first_derivative + bias
+    #bias = 0
+    #if add_bias:
+    bias = (torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat))/n - sigma**2
+    return (fidelity + first_derivative + bias)/2
 
 # wrapper function
 # usage: example for mse
