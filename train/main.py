@@ -157,7 +157,7 @@ if __name__ == '__main__':
         tutil.log_hyperparams(batch_size, sigma, alpha, writer)
 
         loss = args.loss
-        objective_params = {'loss':loss, 'alpha':alpha, 'sigma':sigma}
+        objective_params = {'loss':loss, 'alpha':alpha, 'sigma':sigma, 'add_bias':True}
         print('Training with loss function: ', loss)
 
         print('Begin training...')

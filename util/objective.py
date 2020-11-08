@@ -30,8 +30,8 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     n = noisy_image_flat.size()[0]
 
     # fidelity term
-    fidelity = 1/n * torch.dot(denoised_image_flat, denoised_image_flat)
-    fidelity -= 2/n * torch.dot(noisy_image_flat, denoised_image_flat)
+    fidelity = torch.dot(denoised_image_flat, denoised_image_flat)
+    fidelity -= 2 * torch.dot(noisy_image_flat, denoised_image_flat)
 
     # first derivative term
     eps_1 = 1e-4
@@ -39,13 +39,13 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
-    first_derivative *= 2. / (n * eps_1)
+    first_derivative *= 2. / (eps_1)
 
     # bias term
     bias = 0
     if add_bias:
-        bias = (torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat))/n
-    return fidelity + first_derivative + bias
+        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat)
+    return (fidelity + first_derivative + bias) / (2 * noisy_image.shape[0])
 
 # Stein-Poisson Unbiased Risk Estimator (SPURE) (assuming H = I)
 # noisy image is input vector y
@@ -62,8 +62,8 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     n = noisy_image_flat.size()[0]
 
     # fidelity term
-    fidelity = 1/n * torch.dot(denoised_image_flat, denoised_image_flat)
-    fidelity -= 2/n * torch.dot(noisy_image_flat, denoised_image_flat)
+    fidelity = torch.dot(denoised_image_flat, denoised_image_flat)
+    fidelity -= 2 * torch.dot(noisy_image_flat, denoised_image_flat)
 
     # first derivative term
     eps_1 = 1e-4
@@ -71,7 +71,7 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
-    first_derivative *= 2. / (n * eps_1)
+    first_derivative *= 2. / (eps_1)
 
     # second derivative term
     eps_2 = 1e-2
@@ -82,13 +82,13 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2)
     denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2)
     second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
-    second_derivative *= -2. * torch.squeeze(alpha * sigma**2) / (n * kappa * eps_2**2)
+    second_derivative *= -2. * torch.squeeze(alpha * sigma**2) / (kappa * eps_2**2)
 
     # bias term
-    #bias = 0
-    #if add_bias:
-    bias = (torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat))/n - sigma**2
-    return (fidelity + first_derivative + bias)/2
+    bias = 0
+    if add_bias:
+        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat) - (sigma**2*n)
+    return (fidelity + first_derivative + bias) / (2 * noisy_image.shape[0])
 
 # wrapper function
 # usage: example for mse
