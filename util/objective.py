@@ -40,14 +40,14 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False, de
     random_image_1 = random_image_1.to(device=device, dtype=dtype)
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
-    denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
-    first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
+    # denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
+    first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n).to(device=device, dtype=dtype)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (eps_1)
 
     # bias term
     bias = 0
     if add_bias:
-        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat)
+        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n).to(device=device, dtype=dtype), noisy_image_flat)
     return (fidelity + first_derivative + bias) / (2 * noisy_image.shape[0])
 
 # Stein-Poisson Unbiased Risk Estimator (SPURE) (assuming H = I)
@@ -74,8 +74,8 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False, d
     random_image_1 = random_image_1.to(device=device, dtype=dtype)
     image_perturb_1 = noisy_image + eps_1 * random_image_1
     denoised_perturb_1 = denoiser(image_perturb_1)
-    denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
-    first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
+    # denoised_perturb_1 = denoised_perturb_1.to(device=device, dtype=dtype)
+    first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n).to(device=device, dtype=dtype)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (eps_1)
 
     # second derivative term
@@ -86,16 +86,16 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False, d
     random_image_2 = binary_dist(noisy_image.shape, p, [math.sqrt(p/q), -math.sqrt(q/p)])
     random_image_2 = random_image_2.to(device=device, dtype=dtype)
     denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2)
-    denoised_perturb_2_pos = denoised_perturb_2_pos.to(device=device, dtype=dtype)
+    # denoised_perturb_2_pos = denoised_perturb_2_pos.to(device=device, dtype=dtype)
     denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2)
-    denoised_perturb_2_neg = denoised_perturb_2_neg.to(device=device, dtype=dtype)
+    # denoised_perturb_2_neg = denoised_perturb_2_neg.to(device=device, dtype=dtype)
     second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
     second_derivative *= -2. * torch.squeeze(alpha * sigma**2) / (kappa * eps_2**2)
 
     # bias term
     bias = 0
     if add_bias:
-        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n), noisy_image_flat) - (sigma**2*n)
+        bias = torch.dot(noisy_image_flat - alpha * torch.ones(n).to(device=device, dtype=dtype), noisy_image_flat) - (sigma**2*n)
     return (fidelity + first_derivative + bias) / (2 * noisy_image.shape[0])
 
 # wrapper function
