@@ -37,7 +37,7 @@ def pure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     eps_1 = 1e-4
     random_image_1 = binary_dist(noisy_image.shape, 0.5, [-1, 1])
     image_perturb_1 = noisy_image + eps_1 * random_image_1
-    denoised_perturb_1 = denoiser(image_perturb_1, std=sigma)
+    denoised_perturb_1 = denoiser(image_perturb_1)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (n * eps_1)
 
@@ -69,7 +69,7 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     eps_1 = 1e-4
     random_image_1 = binary_dist(noisy_image.shape, 0.5, [-1, 1])
     image_perturb_1 = noisy_image + eps_1 * random_image_1
-    denoised_perturb_1 = denoiser(image_perturb_1, std=sigma)
+    denoised_perturb_1 = denoiser(image_perturb_1)
     first_derivative = torch.dot(random_image_1.view(-1) * (alpha * noisy_image_flat + sigma**2*torch.ones(n)), denoised_perturb_1.view(-1) - denoised_image_flat)
     first_derivative *= 2. / (n * eps_1)
 
@@ -79,8 +79,8 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
     p = 0.5 + (0.5 * kappa / math.sqrt(kappa**2 + 4))
     q = 1 - p
     random_image_2 = binary_dist(noisy_image.shape, p, [math.sqrt(p/q), -math.sqrt(q/p)])
-    denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2, std=sigma)
-    denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2, std=sigma)
+    denoised_perturb_2_pos = denoiser(noisy_image + eps_2 * random_image_2)
+    denoised_perturb_2_neg = denoiser(noisy_image - eps_2 * random_image_2)
     second_derivative = torch.dot(random_image_2.view(-1), denoised_perturb_2_pos.view(-1) - 2 * denoised_image_flat + denoised_perturb_2_neg.view(-1))
     second_derivative *= -2. * alpha * sigma**2 / (n * kappa * eps_2**2)
 
@@ -104,74 +104,39 @@ def spure(noisy_image, denoised_image, denoiser, alpha, sigma, add_bias=False):
 # loss = loss_func(objective_params, image, noisy_image, denoised_image, denoiser)
 
 def loss_func(objective_params, image, noisy_image, denoised_image, denoiser):
-    obj_name = ""
+    """Wrapper function for loss functions (mse, pure, spure)
+
+    Args:
+        objective_params: parameters for calculating loss/objective function.
+        image: true image (x)
+        noisy_image: image with noise (y)
+        denoised_image: image reconstructed by model (f(y))
+        denoiser: model used to reconstruct image (f)
+
+    Returns:
+        loss
+    """
+    obj_name = ''
     if type(objective_params) == str:
-        if obj_name != "mse":
-            print("Warning: set objective to mse loss")
-        obj_name = "mse"
-    elif ("loss" not in objective_params) or (objective_params["loss"] not in ["mse", "pure", "spure"]):
-        obj_name = "mse"
+        if obj_name != 'mse':
+            print('Warning: set objective to mse loss')
+        obj_name = 'mse'
+    elif ('loss' not in objective_params) or (objective_params['loss'] not in ['mse', 'pure', 'spure']):
+        obj_name = 'mse'
         print("Warning: set objective to mse loss")
     else:
-        obj_name = objective_params["loss"]
-    if obj_name == "mse":
+        obj_name = objective_params['loss']
+    if obj_name == 'mse':
         return torch.nn.MSE_loss(denoised_image, image, reduction='sum') / (2 * noisy_image.shape[0])
     else:
-        assert "alpha" in objective_params, "Missing parameter: poisson strenth (alpha)"
-        assert "sigma" in objective_params, "Missing parameter: gaussian std (sigma)"
+        assert 'alpha' in objective_params, 'Missing parameter: poisson strenth (alpha)'
+        assert 'sigma' in objective_params, 'Missing parameter: gaussian std (sigma)'
 
         add_bias = False
-        if "add_bias" in objective_params:
-            add_bias = objective_params["add_bias"]
+        if 'add_bias' in objective_params:
+            add_bias = objective_params['add_bias']
 
-        if obj_name == "pure":
-            return pure(noisy_image, denoised_image, denoiser, objective_params["alpha"], objective_params["sigma"], add_bias)
-        if obj_name == "spure":
-            return spure(noisy_image, denoised_image, denoiser, objective_params["alpha"], objective_params["sigma"], add_bias)
-
-# wrapper class for objective function
-
-# usage: example for mse
-# initialization obj = Objective("mse")
-# forward pass: loss = obj(denoised_image, true_image)
-# backward pass: loss.backward()
-
-# usage: example for pure
-# initialization obj = Objective("spure", {"alpha":0.01, "std":0.05})
-# forward pass: loss = obj(denoised_image, noisy_image, denoiser)
-# backward pass: loss.backward()
-
-class Objective:
-    def __init__(self, objective = "mse", params = None):
-        if objective not in ["mse", "pure", "spure"]:
-            print("Invalid choice of objective function, set objective to mse loss")
-            objective = "mse"
-        if objective == "mse":
-            self.obj_name = "mse"
-            print("Set objective function: MSE loss")
-        else:
-            assert params != None, "Missing parameters dictionary"
-            assert "alpha" in params, "Missing parameter: poisson strenth (alpha)"
-            assert "std" in params, "Missing parameter: gaussian std (std)"
-            self.add_bias = False
-            if "add_bias" in params:
-                self.add_bias = params["add_bias"]
-            if objective == "pure":
-                self.obj_name = "pure"
-                print("Set objective function: PURE")
-            if objective == "spure":
-                self.obj_name = "spure"
-                print("Set objective function: SPURE")
-
-    def calc_loss(self, output, target, denoiser = None):
-        if self.obj_name == "mse":
-            return torch.nn.MSE_loss(output, target)
-        elif self.obj_name == "pure":
-            assert "denoiser" is not None, "Missing denoiser"
-            return pure(target, output, denoiser, self.alpha, self.std, self.add_bias)
-        elif self.obj_name == "spure":
-            assert "denoiser" is not None, "Missing denoiser"
-            return spure(target, output, denoiser, self.alpha, self.std, self.add_bias)
-
-    def __call__(self, output, target, denoiser = None):
-        return self.calc_loss(output, target, denoiser)
+        if obj_name == 'pure':
+            return pure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias)
+        if obj_name == 'spure':
+            return spure(noisy_image, denoised_image, denoiser, objective_params['alpha'], objective_params['sigma'], add_bias)
