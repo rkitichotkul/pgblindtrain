@@ -1,9 +1,9 @@
 python train/main.py train \
     --datadir data \
-    --modeltype remez \
-    --modeldir result/remez_spure_0/remez_spure_0.pth \
-    --logdir result/remez_spure_0 \
-    --numlayers 20 \
+    --modeltype dncnn \
+    --modeldir result/dncnn_spure_0/dncnn_spure_0.pth \
+    --logdir result/dncnn_spure_0 \
+    --numlayers 17 \
     --sigma 25 \
     --alpha 0.01 \
     --loss spure \

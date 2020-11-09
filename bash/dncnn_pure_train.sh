@@ -1,0 +1,12 @@
+python train/main.py train \
+    --datadir data \
+    --modeltype dncnn \
+    --modeldir result/dncnn_pure_0/dncnn_pure_0.pth \
+    --logdir result/dncnn_pure_0 \
+    --numlayers 17 \
+    --sigma 0 \
+    --alpha 0.01 \
+    --loss pure \
+    --learnrate 1e-3 \
+    --epochs 15 \
+    --logevery 50
