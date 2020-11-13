@@ -46,6 +46,8 @@ parser.add_argument('--numval', type=int, default=None,
                     help='Number of val images. If None, use all images in val directory.')
 parser.add_argument('--numtest', type=int, default=None,
                     help='Number of test images. If None, use all images in test directory.')
+parser.add_argument('--trainwindow', type=int, default=40,
+                    help='Patch size of training images.')
 
 # Arguments for train
 parser.add_argument('--modeltype', type=str, choices=['dncnn', 'remez'],
@@ -85,10 +87,11 @@ if __name__ == '__main__':
         num_train = args.numtrain
         num_val = args.numval
         num_test = args.numtest
+        train_window = args.trainwindow
 
         print('Generating datasets...')
         generate_datasets(datadir, num_train=num_train,
-                          num_val=num_val, num_test=num_test)
+                          num_val=num_val, num_test=num_test, train_window=train_window)
 
         print('Generating dataset: Done!')
 

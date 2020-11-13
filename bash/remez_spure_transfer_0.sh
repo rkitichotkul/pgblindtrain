@@ -1,0 +1,13 @@
+python train/main.py train \
+    --datadir astro_data \
+    --modeltype remez \
+    --modeldir result/remez_spure_transfer_0/remez_spure_transfer_0.pth \
+    --cpdir result/remez_smse_1/remez_smse_1.pth \
+    --logdir result/remez_spure_transfer_0 \
+    --numlayers 20 \
+    --sigma 25 \
+    --alpha 0.01 \
+    --loss spure \
+    --learnrate 1e-3 \
+    --epochs 25 \
+    --logevery 50

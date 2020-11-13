@@ -21,7 +21,7 @@ import numpy as np
 import h5py
 from util.general import normalize, read_image, generate_loadlist, remove_if_exists
 
-def generate_datasets(rootdir, num_train=None, num_val=None, num_test=None):
+def generate_datasets(rootdir, num_train=None, num_val=None, num_test=None, train_window=40):
     """Generate train and test datasets.
 
     Note:
@@ -53,7 +53,7 @@ def generate_datasets(rootdir, num_train=None, num_val=None, num_test=None):
     loadlist = generate_loadlist(os.path.join(rootdir, 'train'), num_files=num_train)
     savename = os.path.join(rootdir, 'train.h5')
     remove_if_exists(savename)
-    generate_h5(loadlist, savename, 40, 10)
+    generate_h5(loadlist, savename, train_window, 10)
 
     # Generate validation dataset (Set12)
     loadlist = generate_loadlist(os.path.join(rootdir, 'val'), num_files=num_val)
